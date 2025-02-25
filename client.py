@@ -45,26 +45,13 @@ def parseArgs():
     args = parser.parse_args()
     return args
 
-
-
-
-### TODO
-# you need to modify this function to return a tuple
-# consisting of two SHA-256 hashes -- the first is
-# the hashed value of the confkey, the second is the hashed
-# value of the auth key.  Make sure that you are returning
-# byte arrays and not hexidemical conversions (i.e., don't use
-# the hexdigest() function.)
-#
-# note that you MUST convert confkey and authkey to ascii encoding,
-# e.g., confkey_as_bytes = bytes(confkey,'ascii')
 def hashKeys( confkey, authkey):
     # insert code to compute two hashes here
     confkey_as_bytes = bytes(confkey,'ascii')
     authkey_as_bytes = bytes(authkey,'ascii')
 
-    confkeyHash = SHA256.new(data=confkey_as_bytes)
-    authkeyHash = SHA256.new(data=authkey_as_bytes)
+    confkeyHash = SHA256.new(data=confkey_as_bytes).digest()
+    authkeyHash = SHA256.new(data=authkey_as_bytes).digest()
     
     confkeyHash = bytes([0x01,0x02])
     authkeyHash = bytes([0x99,0x22,0x33])
