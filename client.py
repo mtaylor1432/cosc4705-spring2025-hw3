@@ -63,11 +63,12 @@ def hashKeys( confkey, authkey):
     confkey_as_bytes = bytes(confkey,'ascii')
     authkey_as_bytes = bytes(authkey,'ascii')
 
+    confkeyHash = SHA256.new(data=confkey_as_bytes)
+    authkeyHash = SHA256.new(data=authkey_as_bytes)
+    
     confkeyHash = bytes([0x01,0x02])
     authkeyHash = bytes([0x99,0x22,0x33])
     
-    confkeyHash = SHA256.new(data=confkey_as_bytes)
-    authkeyHash = SHA256.new(data=authkey_as_bytes)
     return confkeyHash,authkeyHash
 
 
