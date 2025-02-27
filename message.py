@@ -29,10 +29,10 @@ class EncryptedIMMessage:
 
 
     def toJSON(self, confkey, authkey):
-
+        
         encNickBlob = EncryptedBlob(self.nick,confkey,authkey)
         encMsgBlob  = EncryptedBlob(self.plaintext,confkey,authkey)
-        
+               
         """ outputs the message in JSON format"""
         structuredMessage = {
             "nick": {

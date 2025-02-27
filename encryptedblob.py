@@ -1,7 +1,10 @@
 import base64
 from Crypto.Util.Padding import pad, unpad
 from Crypto.Cipher import AES
+from Crypto.Hash import HMAC, SHA256 
+from Crypto.Random import get_random_bytes
 import imexceptions
+from hmac import compare_digest
 
 
 class EncryptedBlob:
@@ -21,15 +24,17 @@ class EncryptedBlob:
     # encrypts the plaintext and adds a SHA256-based HMAC
     # using an encrypt-then-MAC solution
     def encryptThenMAC(self,confkey,authkey,plaintext):
-        # TODO: MODIFY THE CODE BELOW TO ACTUALLY ENCRYPT 
-        # AND GENERATE A SHA256-BASED HMAC BASED ON THE 
-        # confkey AND authkey
-
         # pad the plaintext to make AES happy
-        plaintextPadded = pad(bytes(plaintext,'utf-8'),16) 
-        ciphertext = plaintextPadded  # definitely change this. :)
-        iv = bytes([0x00, 0x00, 0x00, 0x00])  # and this too!
-        mac = bytes([0x00, 0x00, 0x00, 0x00]) # and this too!
+        plaintextPadded = pad(plaintext.encode('utf-8'), AES.block_size)
+        
+        iv = get_random_bytes(16)
+
+        cipher = AES.new(confkey, AES.MODE_CBC, iv)
+        ciphertext = cipher.encrypt(plaintextPadded)
+                        
+        mac = HMAC.new(authkey, digestmod=SHA256)
+        mac.update(iv + ciphertext)
+        macDigest = mac.digest()
 
         # DON'T CHANGE THE BELOW.
         # What we're doing here is converting the iv, ciphertext,
@@ -37,7 +42,9 @@ class EncryptedBlob:
         # can be part of the JSON EncryptedIM object
         ivBase64 = base64.b64encode(iv).decode("utf-8") 
         ciphertextBase64 = base64.b64encode(ciphertext).decode("utf-8") 
-        macBase64 = base64.b64encode(mac).decode("utf-8") 
+        macBase64 = base64.b64encode(macDigest).decode("utf-8") 
+       
+        
         return ivBase64, ciphertextBase64, macBase64
 
 
@@ -45,23 +52,19 @@ class EncryptedBlob:
         iv = base64.b64decode(ivBase64)
         ciphertext = base64.b64decode(ciphertextBase64)
         mac = base64.b64decode(macBase64)
+    
+        try:
+            
+            cipher = AES.new(confkey, AES.MODE_CBC, iv)
+            plaintext = unpad(cipher.decrypt(ciphertext), AES.block_size)
+        except imexceptions.FailedDecryptionError:
+            raise imexceptions.FailedDecryptionError("Failed to decrypt the ciphertext.")
+         
+        verifyMac = HMAC.new(authkey, digestmod=SHA256)
+        verifyMac.update(iv + ciphertext)
+        computed_mac = verifyMac.digest() 
+      
+        if not compare_digest(computed_mac, mac):
+            raise imexceptions.FailedAuthenticationError("MAC verification failed")
         
-        # TODO: MODIFY THE CODE BELOW TO ACTUALLY DECRYPT
-        # IF IT DOESN'T DECRYPT, YOU NEED TO RAISE A 
-        # FailedDecryptionError EXCEPTION
-
-        # TODO: hint: in encryptThenMAC, I padded the plaintext.  You'll
-        # need to unpad it.
-        # See https://pycryptodome.readthedocs.io/en/v3.11.0/src/util/util.html#crypto-util-padding-module
-
-        # so, this next line is definitely wrong.  :)
-        self.plaintext = "It's a wonderful day in the neighborhood."
-        
-        # TODO: DON'T FORGET TO VERIFY THE MAC!!!
-        # IF IT DOESN'T VERIFY, YOU NEED TO RAISE A
-        # FailedAuthenticationError EXCEPTION
-
-        raise imexceptions.FailedAuthenticationError("ruh oh!")
-        
-
-        return self.plaintext
+        return plaintext.decode('utf-8')
